@@ -170,16 +170,6 @@
 
 ---
 
-<!-- ░░░░░░░░░░░░░░░ CONTRIBUTION GRID ░░░░░░░░░░░░░░░ -->
-
-<h3 align="center">🟩 Contribution Activity</h3>
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/MahdiRaahimi/MahdiRaahimi/output/contribution-grid.svg" width="95%" alt="GitHub Contribution Grid"/>
-</div>
-
----
-
 <!-- ░░░░░░░░░░░░░░░ QUOTE ░░░░░░░░░░░░░░░ -->
 
 <h3 align="center">💭 Engineering Philosophy</h3>
