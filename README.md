@@ -132,12 +132,18 @@
     <td colspan="2" valign="top" style="padding: 12px; border: 1px solid #1a1a2e; border-radius: 8px;">
       <h3 align="center">🎓 Simkad — University Management System</h3>
       <p align="center">
+        <img src="https://img.shields.io/badge/C%23-239120?style=flat-square&logo=csharp&logoColor=white" height="20" alt="C#"/>
+        <img src="https://img.shields.io/badge/ASP.NET-512BD4?style=flat-square&logo=dotnet&logoColor=white" height="20" alt="ASP.NET"/>
         <img src="https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white" height="20" alt="HTML5"/>
-        <img src="https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white" height="20" alt="CSS3"/>
+        <img src="https://img.shields.io/badge/SCSS-CC6699?style=flat-square&logo=sass&logoColor=white" height="20" alt="SCSS"/>
         <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black" height="20" alt="JS"/>
       </p>
-      <p align="center">Enterprise web platform for end-to-end university administration — student enrollment, course registration, academic records, and faculty workflow management. Responsive front-end with dynamic data-binding and optimized DOM rendering for large data volumes.</p>
-      <p align="center"><a href="https://github.com/MahdiRaahimi/simkad-university-system"><img src="https://img.shields.io/badge/View_Repository-0d1117?style=flat-square&logo=github&logoColor=00F5D4" height="24" alt="Repository"/></a></p>
+      <p align="center">Enterprise web platform for end-to-end university administration — student enrollment, course registration, academic records, and faculty workflow management. Built collaboratively with <a href="https://github.com/mmd-mch">mmd-mch</a> on a C# / ASP.NET back-end with dynamic front-end rendering for large data volumes.</p>
+      <p align="center">
+        <a href="https://github.com/MahdiRaahimi/simkad-university-system"><img src="https://img.shields.io/badge/View_Repository-0d1117?style=flat-square&logo=github&logoColor=00F5D4" height="24" alt="Repository"/></a>
+        &nbsp;
+        <img src="https://img.shields.io/badge/Collaboration-FF6347?style=flat-square&logo=weblate&logoColor=white" height="24" alt="Collaboration"/>
+      </p>
     </td>
   </tr>
 </table>
