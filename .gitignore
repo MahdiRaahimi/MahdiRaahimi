@@ -1,0 +1,4 @@
+dist/
+contrib_*.html
+*.html.bak
+__pycache__/

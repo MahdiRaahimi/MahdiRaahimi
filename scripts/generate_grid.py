@@ -1,185 +1,229 @@
-import urllib.request, json, datetime, sys, os
+"""
+GitHub Contribution Grid SVG Generator
+=======================================
+Fetches the public contributions page from GitHub
+(https://github.com/users/<user>/contributions), extracts the exact
+data-level (0-4) and contribution count for every day, and renders an
+SVG that mirrors the GitHub contribution calendar precisely.
+
+No authentication needed — the page is public.
+"""
+
+import urllib.request, re, datetime, os
 
 USERNAME = "MahdiRaahimi"
-TOKEN = os.environ.get("GH_TOKEN", "")
 
-# Fetch contributions via GraphQL
-query = '{ user(login: "%s") { contributionsCollection { totalCommitContributions totalIssueContributions totalPullRequestContributions totalRepositoryContributions totalPullRequestReviewContributions contributionCalendar { totalContributions weeks { contributionDays { contributionCount date } } } } } }' % USERNAME
+# GitHub dark-theme calendar colors (official Primer palette)
+LEVEL_COLORS = {
+    0: "#161b22",
+    1: "#0e4429",
+    2: "#006d32",
+    3: "#26a641",
+    4: "#39d353",
+}
 
-req = urllib.request.Request(
-    "https://api.github.com/graphql",
-    data=json.dumps({"query": query}).encode(),
-    headers={
-        "Authorization": "bearer " + TOKEN,
-        "Content-Type": "application/json",
-        "User-Agent": "contribution-grid-generator"
-    }
-)
 
-total_contribs = 0
-total_commits = 0
-total_prs = 0
-total_issues = 0
-total_repos = 0
-total_reviews = 0
-contrib_counts = {}
+def fetch_contribution_days():
+    """
+    Fetch the HTML contributions page and return an ordered dict:
+        date_str -> (level, count)
 
-try:
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        result = json.loads(resp.read())
-    cc = result["data"]["user"]["contributionsCollection"]
-    calendar = cc["contributionCalendar"]
-    total_contribs = calendar["totalContributions"]
-    total_commits = cc["totalCommitContributions"]
-    total_prs = cc["totalPullRequestContributions"]
-    total_issues = cc["totalIssueContributions"]
-    total_repos = cc["totalRepositoryContributions"]
-    total_reviews = cc["totalPullRequestReviewContributions"]
-    for week in calendar["weeks"]:
-        for day in week["contributionDays"]:
-            contrib_counts[day["date"]] = day["contributionCount"]
-    print("GraphQL OK: %d total contributions" % total_contribs)
-except Exception as e:
-    print("GraphQL failed: %s" % e)
-    # Fallback to REST
+    The page renders <td> elements in row-major order:
+    row 0 = all Sundays, row 1 = all Mondays, ..., row 6 = all Saturdays.
+    Each <td> is followed by a <tool-tip> that says either
+    "No contributions on ..." or "N contributions on ...".
+    """
+    url = "https://github.com/users/%s/contributions" % USERNAME
+
+    # Use curl to fetch the page — more reliable than urllib on Windows
+    import subprocess, tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="wb")
+    tmp.close()
     try:
-        url = "https://api.github.com/users/%s/events?per_page=100" % USERNAME
-        req2 = urllib.request.Request(url, headers={
-            "Authorization": "token " + TOKEN,
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "contribution-grid-generator"
-        })
-        with urllib.request.urlopen(req2, timeout=30) as resp2:
-            events = json.loads(resp2.read())
-        for event in events:
-            day = event.get("created_at", "")[:10]
-            if day:
-                contrib_counts[day] = contrib_counts.get(day, 0) + 1
-        total_contribs = sum(contrib_counts.values())
-        total_commits = total_contribs
-        print("REST fallback: %d contributions" % total_contribs)
-    except Exception as e2:
-        print("REST also failed: %s" % e2)
+        subprocess.run(
+            ["curl", "-sL", "--max-time", "60",
+             "-H", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+             "-H", "Accept: text/html",
+             "-o", tmp.name, url],
+            check=True, timeout=90
+        )
+        with open(tmp.name, "r", encoding="utf-8") as f:
+            page = f.read()
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
 
-# Generate grid
-today = datetime.date.today()
-days_since_sunday = today.weekday() + 1
-start_date = today - datetime.timedelta(days=days_since_sunday + 364)
+    if not page:
+        raise RuntimeError("Failed to fetch contributions page")
 
-weeks = []
-for w in range(53):
-    week = []
-    for d in range(7):
-        date = start_date + datetime.timedelta(days=w * 7 + d)
-        count = contrib_counts.get(date.isoformat(), 0)
-        week.append({"date": date.isoformat(), "count": count})
-    weeks.append(week)
+    # Extract date + level from each <td>
+    day_re = re.compile(
+        r'data-date="(\d{4}-\d{2}-\d{2})"[^>]*?data-level="(\d)"'
+    )
+    days = day_re.findall(page)
 
-active_days = 0
-max_count = 0
-for week in weeks:
-    for day in week:
-        if day["count"] > 0:
-            active_days += 1
-            if day["count"] > max_count:
-                max_count = day["count"]
+    # Extract counts from tooltips (same order as days)
+    tooltip_re = re.compile(
+        r'>(?:No contributions|(\d+)\s+contributions?)\s+on\s+'
+    )
+    tooltips = tooltip_re.findall(page)
 
-def color_for(count):
-    if count == 0: return "#161b22"
-    elif count <= 2: return "#0e4429"
-    elif count <= 5: return "#006d32"
-    elif count <= 9: return "#26a641"
-    else: return "#39d353"
+    day_data = {}
+    for i, (date_str, level_str) in enumerate(days):
+        count = int(tooltips[i]) if i < len(tooltips) and tooltips[i] else 0
+        day_data[date_str] = (int(level_str), count)
 
-cell_size = 11
-cell_gap = 3
-margin_left = 30
-margin_top = 45
-svg_width = margin_left + len(weeks) * (cell_size + cell_gap) + 10
-svg_height = margin_top + 7 * (cell_size + cell_gap) + 30
+    return day_data
 
-month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-month_positions = {}
-for w_idx, week in enumerate(weeks):
-    if week:
-        first_day = week[0]["date"]
-        month = int(first_day[5:7])
-        if month not in month_positions:
-            month_positions[month] = margin_left + w_idx * (cell_size + cell_gap)
 
-parts = []
-parts.append('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">' % (svg_width, svg_height, svg_width, svg_height))
-parts.append('<rect width="%d" height="%d" fill="#0d1117" rx="8"/>' % (svg_width, svg_height))
+def build_weeks(day_data):
+    """
+    Convert the date→(level,count) dict into a column-major grid:
+    weeks[week_index][day_of_week] = {date, level, count}
 
-# Title
-parts.append('<g font-family="Segoe UI, Arial, sans-serif">')
-parts.append('<text x="15" y="22" font-size="13" font-weight="600" fill="#c9d1d9">%d contributions in the last year</text>' % total_contribs)
-parts.append('</g>')
+    GitHub's calendar starts on the Sunday of the week containing the
+    first day, and ends on the Saturday of the last week.
+    """
+    if not day_data:
+        return []
 
-# Stats
-stats_y = 35
-stats_x = 15
-parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="11">')
-stats_items = [
-    (total_commits, "commits", "#39d353"),
-    (total_prs, "pull requests", "#00F5D4"),
-    (total_repos, "repositories", "#58a6ff"),
-    (total_issues, "issues", "#f78166"),
-    (total_reviews, "reviews", "#bc8cff"),
-]
-for count, label, color in stats_items:
-    if count > 0:
-        parts.append('<text x="%d" y="%d" fill="%s">%d</text>' % (stats_x, stats_y, color, count))
-        parts.append('<text x="%d" y="%d" fill="#8b949e">%s</text>' % (stats_x + 14, stats_y, label))
-        stats_x += 14 + len(label) * 6 + 15
-parts.append('</g>')
+    sorted_dates = sorted(day_data.keys())
+    first_date = datetime.date.fromisoformat(sorted_dates[0])
+    last_date = datetime.date.fromisoformat(sorted_dates[-1])
 
-# Month labels
-parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">')
-for month, x in sorted(month_positions.items()):
-    parts.append('<text x="%d" y="%d">%s</text>' % (x, margin_top - 6, month_names[month-1]))
-parts.append('</g>')
+    # Align start to Sunday (weekday() returns Mon=0..Sun=6)
+    start = first_date - datetime.timedelta(days=(first_date.weekday() + 1) % 7)
 
-# Day labels
-parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">')
-day_labels = {1: "Mon", 3: "Wed", 5: "Fri"}
-for day_idx, label in day_labels.items():
-    y = margin_top + day_idx * (cell_size + cell_gap) + cell_size - 1
-    parts.append('<text x="2" y="%d">%s</text>' % (y, label))
-parts.append('</g>')
+    weeks = []
+    total_contribs = 0
+    active_days = 0
+    max_count = 0
+    current = start
+    while current <= last_date:
+        week = []
+        for _ in range(7):
+            ds = current.isoformat()
+            if ds in day_data:
+                level, count = day_data[ds]
+            else:
+                level, count = 0, 0
+            week.append({"date": ds, "level": level, "count": count})
+            total_contribs += count
+            if count > 0:
+                active_days += 1
+                max_count = max(max_count, count)
+            current += datetime.timedelta(days=1)
+        weeks.append(week)
 
-# Cells
-parts.append('<g>')
-for w_idx, week in enumerate(weeks):
-    for d_idx, day in enumerate(week):
-        x = margin_left + w_idx * (cell_size + cell_gap)
-        y = margin_top + d_idx * (cell_size + cell_gap)
-        c = color_for(day["count"])
-        parts.append('<rect x="%d" y="%d" width="%d" height="%d" rx="2" ry="2" fill="%s"/>' % (x, y, cell_size, cell_size, c))
-parts.append('</g>')
+    return weeks, total_contribs, active_days, max_count
 
-# Footer
-footer_y = svg_height - 12
-parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="11">')
-parts.append('<text x="15" y="%d" fill="#39d353">Active: %d days</text>' % (footer_y, active_days))
-parts.append('<text x="120" y="%d" fill="#39d353">Max: %d in a day</text>' % (footer_y, max_count))
-parts.append('</g>')
 
-# Legend
-legend_colors = ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"]
-legend_x = svg_width - 190
-parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">')
-parts.append('<text x="%d" y="%d">Less</text>' % (legend_x - 25, footer_y))
-for i, c in enumerate(legend_colors):
-    lx = legend_x + i * (cell_size + cell_gap)
-    parts.append('<rect x="%d" y="%d" width="%d" height="%d" rx="2" ry="2" fill="%s"/>' % (lx, footer_y - 9, cell_size, cell_size, c))
-parts.append('<text x="%d" y="%d">More</text>' % (legend_x + 5 * (cell_size + cell_gap) + 4, footer_y))
-parts.append('</g>')
+def generate_svg(weeks, total_contribs, active_days, max_count):
+    cell_size = 11
+    cell_gap = 3
+    margin_left = 30
+    margin_top = 45
+    svg_width = margin_left + len(weeks) * (cell_size + cell_gap) + 10
+    svg_height = margin_top + 7 * (cell_size + cell_gap) + 30
 
-parts.append('</svg>')
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    month_positions = {}
+    for w_idx, week in enumerate(weeks):
+        if week:
+            month = int(week[0]["date"][5:7])
+            if month not in month_positions:
+                month_positions[month] = margin_left + w_idx * (cell_size + cell_gap)
 
-svg_content = "\n".join(parts)
-os.makedirs("dist", exist_ok=True)
-with open("dist/contribution-grid.svg", "w") as f:
-    f.write(svg_content)
-print("Generated SVG: %d bytes, %d weeks" % (len(svg_content), len(weeks)))
+    parts = [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">'
+        % (svg_width, svg_height, svg_width, svg_height),
+        '<rect width="%d" height="%d" fill="#0d1117" rx="8"/>'
+        % (svg_width, svg_height),
+    ]
+
+    # Title
+    parts.append('<g font-family="Segoe UI, Arial, sans-serif">')
+    parts.append('<text x="15" y="22" font-size="13" font-weight="600" fill="#c9d1d9">'
+                 '%d contributions in the last year</text>' % total_contribs)
+    parts.append('</g>')
+
+    # Stats
+    parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="11">')
+    sx = 15
+    sy = 35
+    if active_days > 0:
+        parts.append('<text x="%d" y="%d" fill="#39d353">Active: %d days</text>'
+                     % (sx, sy, active_days))
+        sx += 100
+    if max_count > 0:
+        parts.append('<text x="%d" y="%d" fill="#39d353">Max: %d in a day</text>'
+                     % (sx, sy, max_count))
+    parts.append('</g>')
+
+    # Month labels
+    parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">')
+    for month, x in sorted(month_positions.items()):
+        parts.append('<text x="%d" y="%d">%s</text>'
+                     % (x, margin_top - 6, month_names[month - 1]))
+    parts.append('</g>')
+
+    # Day labels
+    parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">')
+    for day_idx, label in {1: "Mon", 3: "Wed", 5: "Fri"}.items():
+        y = margin_top + day_idx * (cell_size + cell_gap) + cell_size - 1
+        parts.append('<text x="2" y="%d">%s</text>' % (y, label))
+    parts.append('</g>')
+
+    # Cells — exact GitHub level→color mapping
+    parts.append('<g>')
+    for w_idx, week in enumerate(weeks):
+        for d_idx, day in enumerate(week):
+            x = margin_left + w_idx * (cell_size + cell_gap)
+            y = margin_top + d_idx * (cell_size + cell_gap)
+            color = LEVEL_COLORS.get(day["level"], "#161b22")
+            parts.append('<rect x="%d" y="%d" width="%d" height="%d" rx="2" ry="2" fill="%s"/>'
+                         % (x, y, cell_size, cell_size, color))
+    parts.append('</g>')
+
+    # Legend
+    footer_y = svg_height - 12
+    legend_x = svg_width - 190
+    legend_colors = [LEVEL_COLORS[i] for i in range(5)]
+    parts.append('<g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">')
+    parts.append('<text x="%d" y="%d">Less</text>' % (legend_x - 25, footer_y))
+    for i, c in enumerate(legend_colors):
+        lx = legend_x + i * (cell_size + cell_gap)
+        parts.append('<rect x="%d" y="%d" width="%d" height="%d" rx="2" ry="2" fill="%s"/>'
+                     % (lx, footer_y - 9, cell_size, cell_size, c))
+    parts.append('<text x="%d" y="%d">More</text>'
+                 % (legend_x + 5 * (cell_size + cell_gap) + 4, footer_y))
+    parts.append('</g>')
+
+    parts.append('</svg>')
+    return "\n".join(parts)
+
+
+def main():
+    day_data = fetch_contribution_days()
+    if not day_data:
+        print("ERROR: No contribution data fetched")
+        os.makedirs("dist", exist_ok=True)
+        with open("dist/contribution-grid.svg", "w") as f:
+            f.write('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50">'
+                    '<text x="10" y="30" fill="#58a6ff">No data</text></svg>')
+        return
+
+    weeks, total, active, mx = build_weeks(day_data)
+    svg = generate_svg(weeks, total, active, mx)
+    os.makedirs("dist", exist_ok=True)
+    with open("dist/contribution-grid.svg", "w") as f:
+        f.write(svg)
+    print("Generated SVG: %d bytes, %d weeks, %d total contributions, %d active days"
+          % (len(svg), len(weeks), total, active))
+
+
+if __name__ == "__main__":
+    main()
