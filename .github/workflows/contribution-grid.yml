@@ -1,0 +1,42 @@
+name: Generate Contribution Grid
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/contribution-grid.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Contribution Grid SVG
+        uses: minhtran-maverick/github-contribution-grid@v1
+        with:
+          github-spacing: 1
+          github-username: MahdiRaahimi
+          github-block-size: 11
+          github-block-border-radius: 2
+          github-color-unavailable: "#161b22"
+          github-color-low: "#0e4429"
+          github-color-medium-low: "#006d32"
+          github-color-medium-high: "#26a641"
+          github-color-high: "#39d353"
+          svg-filename: dist/contribution-grid.svg
+
+      - name: Push to output branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          publish_branch: output
