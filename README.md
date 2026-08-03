@@ -170,12 +170,12 @@
 
 ---
 
-<!-- ░░░░░░░░░░░░░░░ ACTIVITY GRAPH ░░░░░░░░░░░░░░░ -->
+<!-- ░░░░░░░░░░░░░░░ CONTRIBUTION GRID ░░░░░░░░░░░░░░░ -->
 
-<h3 align="center">📈 Contribution Activity</h3>
+<h3 align="center">🟩 Contribution Activity</h3>
 
 <div align="center">
-  <img src="https://github-readme-activity-graph.vercel.app/graph?username=MahdiRaahimi&theme=github-dark&hide_border=true&bg_color=0d1117&color=00F5D4&line=00F5D4&point=FF6347&area=true&area_color=00F5D4" width="95%" alt="Contribution Activity Graph"/>
+  <img src="https://raw.githubusercontent.com/MahdiRaahimi/MahdiRaahimi/output/contribution-grid.svg" width="95%" alt="GitHub Contribution Grid"/>
 </div>
 
 ---
