@@ -8,18 +8,18 @@
 <text x="115" y="35" fill="#39d353">Max: 17 in a day</text>
 </g>
 <g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">
-<text x="310" y="39">Jan</text>
-<text x="366" y="39">Feb</text>
-<text x="422" y="39">Mar</text>
-<text x="492" y="39">Apr</text>
-<text x="548" y="39">May</text>
-<text x="618" y="39">Jun</text>
-<text x="674" y="39">Jul</text>
+<text x="296" y="39">Jan</text>
+<text x="352" y="39">Feb</text>
+<text x="408" y="39">Mar</text>
+<text x="478" y="39">Apr</text>
+<text x="534" y="39">May</text>
+<text x="604" y="39">Jun</text>
+<text x="660" y="39">Jul</text>
 <text x="30" y="39">Aug</text>
-<text x="72" y="39">Sep</text>
-<text x="128" y="39">Oct</text>
-<text x="184" y="39">Nov</text>
-<text x="254" y="39">Dec</text>
+<text x="58" y="39">Sep</text>
+<text x="114" y="39">Oct</text>
+<text x="170" y="39">Nov</text>
+<text x="240" y="39">Dec</text>
 </g>
 <g font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#8b949e">
 <text x="2" y="69">Mon</text>
@@ -371,14 +371,14 @@
 <rect x="702" y="115" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="702" y="129" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="716" y="45" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
-<rect x="716" y="59" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
+<rect x="716" y="59" width="11" height="11" rx="2" ry="2" fill="#39d353"/>
 <rect x="716" y="73" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="716" y="87" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="716" y="101" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="716" y="115" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="716" y="129" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="730" y="45" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
-<rect x="730" y="59" width="11" height="11" rx="2" ry="2" fill="#39d353"/>
+<rect x="730" y="59" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="730" y="73" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="730" y="87" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
 <rect x="730" y="101" width="11" height="11" rx="2" ry="2" fill="#161b22"/>
